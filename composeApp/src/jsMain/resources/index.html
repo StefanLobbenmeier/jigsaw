@@ -5,10 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f6f3eb">
   <meta name="description" content="A quiet place to piece things together. Jigsaw for browser and desktop.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <title>Jigsaw · A little piece of calm</title>
-  <style>html,body { margin:0; width:100%; height:100%; overflow:hidden; background:#f6f3eb; }</style>
+  <style>
+    html,body { margin:0; width:100%; height:100%; overflow:hidden; background:#f6f3eb; }
+    body { display:flex; flex-direction:column; }
+    #app { flex:1; min-height:0; position:relative; }
+    #pwa { padding:6px 12px; font:13px system-ui; color:#304c48; border-top:1px solid #d8d5ce; }
+    #pwa summary, #install { cursor:pointer; }
+    #pwa p { margin:6px 0; max-width:70em; }
+    #install { font:inherit; }
+  </style>
 </head>
 <body>
+  <div id="app"></div>
+  <aside id="pwa" aria-label="Install and offline help">
+    <details><summary>Install &amp; offline <span id="offline-status" role="status">— preparing offline download…</span></summary>
+      <p><button id="install" hidden>Install Jigsaw</button> In Chrome or Edge, use the address-bar install icon or browser menu → Install app. On iPhone/iPad, open in Safari → Share → Add to Home Screen. Other browsers may offer Add to Home Screen or a shortcut; you can always play in this tab with WebAssembly enabled.</p>
+      <p>Wait for “Ready offline” before disconnecting. All bundled puzzles are downloaded. Progress and saved uploads stay on this device; clearing site data removes them. Source credit links need internet. Updates download online and take effect after closing all Jigsaw windows and reopening.</p>
+    </details>
+  </aside>
+  <script src="pwa.js"></script>
   <script src="composeApp.js"></script>
   <noscript>Jigsaw needs JavaScript to display its puzzle canvas.</noscript>
 </body>

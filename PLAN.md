@@ -26,13 +26,13 @@
 - Add zoom/pan, reference preview, edge filters, progress/completion, keyboard/accessibility behavior and small-screen controls.
 - Define versioned session serialization (spec, image identity, piece/group poses, stash arrangement). Supply browser and desktop persistence adapters; reload and resume.
 
-## 5. Installable offline PWA — pending, final implementation stage
+## 5. Installable offline PWA — complete, final implementation stage
 
 - Add a web app manifest, app name/theme and install icons (including maskable icons).
 - Add a service worker that caches the app shell and bundled puzzles for offline play; define update/cache migration behavior.
 - Support deployment under the GitHub Pages repository subpath: manifest start URL/scope, service worker scope, assets and puzzle URLs must resolve there.
 - Validate installability and installed launch, then offline cold launch and bundled puzzle play under the Pages subpath. Document browser differences and upload/persistence limitations.
-- Implement this after images and stash/persistence, before final validation/publication. PWA implementation is intentionally deferred to a later sequential agent.
+- Implement this after images and stash/persistence, before final validation/publication. PWA implementation is complete; final review/publication remains stage 6.
 
 ## 6. Validate and publish
 
@@ -75,3 +75,12 @@ Stage 5: implement the newly required installable/offline PWA before stage 6 val
 - Browser adapter: localStorage `jigsaw.session.v1`. Desktop adapter: `~/.jigsaw/session-v1.txt`, temporary file plus atomic replacement. Autosave debounce 500 ms; failures preserve prior save and show storage/error feedback. Uploads above 2 MiB are playable but unsavable; no silent byte omission. Save is device/origin local, single-slot, no synchronization. An immediate close can lose the last debounce window; imported images retain stage 3 decode limits/orientation caveats.
 - Verification: 15 desktop tests (five new pure Workspace/save tests), production JS distribution, desktop compilation using SDKMAN current Java. T3 preview loaded the title; two snapshots returned `Preview automation snapshot timed out after 15000ms.` Visual, touch, native dialog, reload and assistive-technology behavior remain unverified; keep these in final validation. Desktop was compiled/tested, not interactively launched.
 - NEXT: stage 5 only, installable offline PWA. Preserve common models and save version/key; cache shell and bundled art under repository-relative URLs. Save storage does not provide offline cold launch. Verify manifest scope/start URL, install icons/maskable, service-worker cache migration and offline launch under a Pages subpath. Then stage 6 validation/publication. No PWA files, remote, publication or delegation added in stage 4.
+
+## Stage 5 verification and final-review handoff
+
+- Added relative standalone manifest and normal/maskable/touch PNG icons; HTML help exposes native install where available, browser menu/Safari instructions and offline/update/storage feedback. Compose mounts inside a flex-sized app container so help remains reachable outside the canvas.
+- Production distribution generates a content-hashed worker from the final output (17 precached assets, excluding source maps). Includes both Wasm payloads, all JS/Skiko modules, both bundled images and the licensed Noto Sans Symbols fallback discovered during offline browser testing. The explicit runtime font URL maps to its bundled cache entry. Audit fallback URLs after dependency updates; arbitrary non-Latin upload filenames may need additional fallback fonts.
+- Installation is atomic with respect to activation: failed downloads delete the partial cache; no skipWaiting; updates wait for all old windows to close. Activation cleans only that repository path's obsolete caches. Saves retain `JIGSAW:1` and `jigsaw.session.v1` unchanged.
+- SDKMAN-current Java: `./gradlew :composeApp:desktopTest :composeApp:jsBrowserDistribution :composeApp:compileKotlinDesktop` passed, including configuration-cache reuse. Existing webpack size/deprecation warnings remain. `node scripts/test-pwa.cjs` passed: all final assets, HTTP/network failure cleanup, directory/index navigation, font routing, no arbitrary-response caching and cache isolation.
+- T3 preview opened the local `/jigsaw/` URL; two snapshots returned `Preview automation snapshot timed out after 15000ms.` Following fallback rules, used local Playwright/Chromium 149. Persistent profile DevTools `Page.getInstallabilityErrors` returned an empty list. Verified worker scope `/jigsaw/`, all cached assets under that path, and a new page launching with the browser context offline after closing the original page. Both bundled artworks decoded/rendered offline; a Great Wave piece transferred from stash to play and autosaved. The symbol font returned 57,708 bytes offline. No page errors. Browser artifacts/logs remain in `/tmp/jigsaw-*` for this workstation.
+- Remaining stage 6 validation: actual OS installation/standalone window launch, iOS/Safari and other browsers, touch and assistive technology, desktop interactive launch, real deployed HTTPS Pages/update lifecycle, quota/eviction and save-resume edge cases. No remote, public repository, push or deployment was created. Proceed to final review, then public GitHub + Pages publication.
