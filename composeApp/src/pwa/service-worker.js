@@ -20,7 +20,10 @@ self.addEventListener('install', event => {
       throw error;
     }
   })());
-  // No skipWaiting: open games retain their matching runtime until closed.
+  // Keep the current release until the user chooses to update or closes all windows.
+});
+self.addEventListener('message', event => {
+  if (event.data?.type === 'APPLY_UPDATE') event.waitUntil(self.skipWaiting());
 });
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {

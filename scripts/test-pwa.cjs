@@ -8,6 +8,7 @@ const source = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 function harness(failure) {
   const handlers = {}, stores = new Map();
   let downloads = 0;
+  let skipped = false;
   const caches = {
     async open(key) {
       if (!stores.has(key)) stores.set(key, new Map());
@@ -17,6 +18,7 @@ function harness(failure) {
     keys: async () => [...stores.keys()], delete: async key => stores.delete(key)
   };
   const scope = {URL, Request, caches, self: {location: {href: 'https://example.test/jigsaw/service-worker.js'},
+    skipWaiting: async () => { skipped = true; },
     clients: {claim: async () => {}}, addEventListener: (name, handler) => handlers[name] = handler},
     fetch: async request => {
       downloads++;
@@ -24,7 +26,7 @@ function harness(failure) {
       return {ok: !(downloads === 2 && failure === 'http'), type: 'basic', url: request.url || request};
     }};
   vm.runInNewContext(source, scope);
-  return {handlers, stores, async run(name) {
+  return {handlers, stores, get skipped() { return skipped; }, async run(name) {
     let promise;
     handlers[name]({waitUntil: p => promise = p});
     await promise;
@@ -41,6 +43,11 @@ function harness(failure) {
     assert.equal(h.stores.size, 0, 'failed installs discard partial caches');
   }
   const h = harness(); await h.run('install');
+  assert.equal(h.skipped, false, 'updates wait for user consent');
+  let activation;
+  h.handlers.message({data: {type: 'APPLY_UPDATE'}, waitUntil: p => activation = p});
+  await activation;
+  assert.equal(h.skipped, true, 'explicit update activates the waiting worker');
   const [key, cache] = [...h.stores][0];
   const files = fs.readdirSync(root, {recursive: true}).filter(file => fs.statSync(path.join(root, file)).isFile() && !file.endsWith('.map') && file !== 'service-worker.js');
   assert.equal(cache.size, files.length, 'every production asset is precached');
