@@ -28,6 +28,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.drawscope.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 
@@ -237,7 +238,7 @@ private fun PuzzleBoard(session: PuzzleSession, artwork: PuzzleArtwork, update: 
     fun scale() = minOf(dimensions.width / (maxX-minX), dimensions.height / (maxY-minY))
     val origin by rememberUpdatedState(Point(minX,minY))
     val cellSize by rememberUpdatedState(scale())
-    Canvas(modifier.onSizeChanged { dimensions = it }.pointerInput(session) {
+    Canvas(modifier.clipToBounds().onSizeChanged { dimensions = it }.pointerInput(session) {
         detectTapGestures { pos -> if (scale() > 0) current.hitTest(Point(pos.x/scale()+minX,pos.y/scale()+minY))?.let(select) }
     }.pointerInput(spec) {
         var dragged: Int? = null

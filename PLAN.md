@@ -38,7 +38,7 @@
 
 - Run geometry/session tests, production browser build, desktop compilation and browser interaction checks, including touch, reload/resume, uploads and Pages subpath asset loading.
 - Check image rights, choose project license, review accessibility/performance, and document browser/runtime limitations.
-- The user has authorized a public GitHub repository and Pages. After implementation and validation, create the repository, push, enable Pages Actions source, and verify the deployed URL and workflow. This stage does not publish.
+- The user has authorized a public GitHub repository and Pages. After implementation and validation, create the repository, push, enable Pages Actions source, and verify the deployed URL and workflow. Publication is authorized in this final stage.
 
 ## Stage 2 verification and behavior
 
@@ -84,3 +84,11 @@ Stage 5: implement the newly required installable/offline PWA before stage 6 val
 - SDKMAN-current Java: `./gradlew :composeApp:desktopTest :composeApp:jsBrowserDistribution :composeApp:compileKotlinDesktop` passed, including configuration-cache reuse. Existing webpack size/deprecation warnings remain. `node scripts/test-pwa.cjs` passed: all final assets, HTTP/network failure cleanup, directory/index navigation, font routing, no arbitrary-response caching and cache isolation.
 - T3 preview opened the local `/jigsaw/` URL; two snapshots returned `Preview automation snapshot timed out after 15000ms.` Following fallback rules, used local Playwright/Chromium 149. Persistent profile DevTools `Page.getInstallabilityErrors` returned an empty list. Verified worker scope `/jigsaw/`, all cached assets under that path, and a new page launching with the browser context offline after closing the original page. Both bundled artworks decoded/rendered offline; a Great Wave piece transferred from stash to play and autosaved. The symbol font returned 57,708 bytes offline. No page errors. Browser artifacts/logs remain in `/tmp/jigsaw-*` for this workstation.
 - Remaining stage 6 validation: actual OS installation/standalone window launch, iOS/Safari and other browsers, touch and assistive technology, desktop interactive launch, real deployed HTTPS Pages/update lifecycle, quota/eviction and save-resume edge cases. No remote, public repository, push or deployment was created. Proceed to final review, then public GitHub + Pages publication.
+
+## Stage 6 final review and release evidence
+
+- Final source/history review found no common embedded credential patterns. Added MIT license for code/original artwork; retained independent image and OFL notices. Rechecked Commons rights pages and both image hashes.
+- Fixed canvas overflow from stash thumbnails by clipping each puzzle canvas to its layout bounds.
+- After the fix, 15 desktop tests, production distribution and desktop compilation pass; the PWA checker passes with 17 assets. CI now runs those tests/checks before deployment.
+- Chromium interaction checks: final correct-neighbor snap from a prepared 23-piece group plus last piece, resulting 24-piece rigid-group drag, exact saved-state restore, native JPEG chooser import and uploaded-image restore, color/shape stash sorting, manual reorder and Play transfer. Mobile 390×844 Chromium touch events moved a piece and autosaved it. Physical touch devices, Safari/iOS, actual OS installation, screen readers, interactive desktop and exhaustive completion from the initial stash remain unvalidated; these are follow-up checks, not claimed complete.
+- Public repository created at https://github.com/StefanLobbenmeier/jigsaw with Pages Actions source enabled. HTTPS deployment verification is pending the first workflow run.
