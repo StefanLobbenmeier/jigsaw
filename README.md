@@ -1,5 +1,7 @@
 # Jigsaw
 
+[Play Jigsaw](https://stefanlobbenmeier.github.io/jigsaw/) · [Public repository](https://github.com/StefanLobbenmeier/jigsaw)
+
 A quiet jigsaw app built with Kotlin Compose Multiplatform. Shared canvas UI runs in the browser (Kotlin/JS) and on desktop (JVM).
 
 Play the original procedural landscape with seeded interlocking pieces, dragging, neighbor snapping, rigid connected groups and completion progress. Choose bundled public-domain art or a local PNG/JPEG, view the reference and start a new game. A separate sortable stash and device-local progress saves are included. The browser app is installable and supports offline bundled puzzles after its first complete download; see [PLAN.md](PLAN.md).
@@ -32,11 +34,11 @@ Serve `composeApp/build/dist/js/productionExecutable/` with any static HTTP serv
 
 Kotlin 2.4.21, Compose Multiplatform 1.12.2, Gradle 9.8.2. Generic build conventions were checked against the local FreeCell project; no FreeCell application code or assets were copied. Versions and canvas entry point follow the [official compatibility guide](https://kotlinlang.org/docs/multiplatform/compose-compatibility-and-versioning.html) and [web release documentation](https://kotlinlang.org/docs/multiplatform/whats-new-compose-190.html).
 
-## Publishing later
+## License and deployment
 
-The user has authorized a public GitHub repository and Pages. No remote has been created yet. After the remaining implementation and validation stages, create the public repository, push `main`, and select **Settings → Pages → Source → GitHub Actions**. `.github/workflows/pages.yml` builds browser assets, compiles desktop, and deploys the static artifact. Repository/organization Pages permissions must allow deployment. The workflow cannot be validated end-to-end until a repository exists.
+Application code and original procedural artwork use the [MIT license](LICENSE). Bundled public-domain reproductions have separate records in [IMAGE_RIGHTS.md](IMAGE_RIGHTS.md); the Noto font retains its OFL license.
 
-Two Wikimedia public-domain reproductions are bundled locally: The Starry Night and The Great Wave. Full creator/source/rights records and asset hashes are in [IMAGE_RIGHTS.md](IMAGE_RIGHTS.md); the application also shows credits and a source link. The original Kotlin landscape remains available. A software/project license must still be chosen before public release.
+Pushes to `main` run desktop model tests, build the browser distribution, compile desktop, check the PWA cache, then deploy through GitHub Pages Actions. The complete output is published under `/jigsaw/`. Deployment validation is recorded below.
 
 ## Scaffold validation
 

@@ -27,7 +27,7 @@ Source and licensing sections were reviewed on 2026-10-25. These are public-doma
 
 ## Local files and original artwork
 
-Local images stay on the device and are not redistributed by this repository. Users supply their own images. The quiet hills is original procedural artwork drawn by the application. A software/project license still needs to be chosen before publication; third-party image status is independent of that choice.
+Local images stay on the device and are not redistributed by this repository. Users supply their own images. The quiet hills is original procedural artwork drawn by the application. The application code and original procedural artwork are covered by the [MIT license](LICENSE); third-party image status is independent of that license.
 
 ## Asset integrity
 

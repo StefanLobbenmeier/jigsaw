@@ -18,7 +18,11 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew :composeApp:jsBrowserDistribution :composeApp:compileKotlinDesktop
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: ./gradlew :composeApp:desktopTest :composeApp:jsBrowserDistribution :composeApp:compileKotlinDesktop
+      - run: node scripts/test-pwa.cjs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: composeApp/build/dist/js/productionExecutable
