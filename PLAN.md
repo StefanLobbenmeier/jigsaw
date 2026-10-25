@@ -20,7 +20,7 @@
 - Add platform-specific local file pickers behind shared interfaces, decode/crop images and render each piece using its shared outline.
 - Handle invalid/large files and cancellation. Keep geometry and artwork selection independent.
 
-## 4. Stash, polish and save
+## 4. Stash, polish and save — complete
 
 - Stash and sort pieces by color, shape, and manual placement; preserve user groups.
 - Add zoom/pan, reference preview, edge filters, progress/completion, keyboard/accessibility behavior and small-screen controls.
@@ -66,3 +66,12 @@ Stage 5: implement the newly required installable/offline PWA before stage 6 val
 - Passed SDKMAN-current Java command: `./gradlew :composeApp:desktopTest :composeApp:jsBrowserDistribution :composeApp:compileKotlinDesktop`. Ten desktop tests cover existing models plus bounds, crop, actual bundled resource decode and color sampling. Production distribution contains both images.
 - Manual picker/dialog and browser/touch validation remains. Native browser `cancel` event needs a modern browser; older browsers may leave import busy after cancellation. EXIF orientation is not normalized; PNG/JPEG only, first frame only, no automatic downsampling. Accepted large images may use ~64 MB plus renderer copies. Bounded `PuzzleArtwork.encodedBytes` are available in memory for the next persistence adapter; reload storage is not implemented yet.
 - No publication or PWA implementation in this stage. Preserve sequence: stash/persistence next, installable offline PWA after that, then final validation/publication. Bundled files alone do not make browser cold launch work offline.
+
+## Stage 4 verification and next-agent handoff
+
+- `Workspace` wraps immutable session state with group representative stash order and `StashSort`. Transfers preserve whole groups; only visible board groups participate in snapping. Stash thumbnails use the actual clipped artwork. Color keys are cached outside draw loops (8×8 bitmap samples; equivalent primitive sampling for the original landscape). Shape keys sort corner/edge count then clockwise flat/tab/socket profile. Manual arrows retain explicit order.
+- Shared UI supplies separate scrollable stash, edge-only stash filter, board selection/return, keyboard-operable group cycling/nudging/join, zoom with scroll pan, fit-all bounds, reference, connection progress/completion, reset/new seed and collection. Image/size changes start fresh games. Fit-all bounds include all board pieces; filters never delete pieces.
+- `save/SessionSave.kt` defines `JIGSAW:1`: bounded text envelope, base64 image identity/name/upload bytes, spec/seed, group translations/membership, stash order and sort. Geometry regenerates deterministically. Decode rejects unsupported versions, oversized specs/envelopes/uploads, nonfinite/unbounded poses, duplicate/missing IDs, disconnected groups and invalid stash representatives. Uploaded images are validated/decoded again on restore.
+- Browser adapter: localStorage `jigsaw.session.v1`. Desktop adapter: `~/.jigsaw/session-v1.txt`, temporary file plus atomic replacement. Autosave debounce 500 ms; failures preserve prior save and show storage/error feedback. Uploads above 2 MiB are playable but unsavable; no silent byte omission. Save is device/origin local, single-slot, no synchronization. An immediate close can lose the last debounce window; imported images retain stage 3 decode limits/orientation caveats.
+- Verification: 15 desktop tests (five new pure Workspace/save tests), production JS distribution, desktop compilation using SDKMAN current Java. T3 preview loaded the title; two snapshots returned `Preview automation snapshot timed out after 15000ms.` Visual, touch, native dialog, reload and assistive-technology behavior remain unverified; keep these in final validation. Desktop was compiled/tested, not interactively launched.
+- NEXT: stage 5 only, installable offline PWA. Preserve common models and save version/key; cache shell and bundled art under repository-relative URLs. Save storage does not provide offline cold launch. Verify manifest scope/start URL, install icons/maskable, service-worker cache migration and offline launch under a Pages subpath. Then stage 6 validation/publication. No PWA files, remote, publication or delegation added in stage 4.

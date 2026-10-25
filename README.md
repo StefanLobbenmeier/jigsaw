@@ -2,7 +2,7 @@
 
 A quiet jigsaw app built with Kotlin Compose Multiplatform. Shared canvas UI runs in the browser (Kotlin/JS) and on desktop (JVM).
 
-Play the original procedural landscape with seeded interlocking pieces, dragging, neighbor snapping, rigid connected groups and completion progress. Choose bundled public-domain art or a local PNG/JPEG, view the reference and start a new game. Stash/persistence and an installable offline PWA are planned; see [PLAN.md](PLAN.md).
+Play the original procedural landscape with seeded interlocking pieces, dragging, neighbor snapping, rigid connected groups and completion progress. Choose bundled public-domain art or a local PNG/JPEG, view the reference and start a new game. A separate sortable stash and device-local progress saves are included. The installable offline PWA is next; see [PLAN.md](PLAN.md).
 
 ## Run and build
 
@@ -59,3 +59,13 @@ Images are center cropped to the selected puzzle aspect ratio, without stretchin
 Stage 3 verification: desktop tests (10 total), `jsBrowserDistribution`, and `compileKotlinDesktop` passed using SDKMAN's current Java. Tests cover image/header limits, crop coordinates, bundled resource decoding and color access alongside the stage 2 geometry/session suite. Browser file chooser interaction, touch play and desktop dialog interaction still need manual validation. Existing Gradle/webpack warnings remain; Skiko also warns about future JVM native-access requirements.
 
 For stage 4, see `dev.jigsaw.artwork`: `ArtworkCredit.id` identifies bundled choices; `PuzzleArtwork.bitmap` gives pixel access and `averagePieceColor(column, row, columns, rows)` samples a crop-aligned 8×8 grid per cell for color sorting (cache results outside draw loops). Original procedural artwork returns null for pixel/color access. Persist `PuzzleArtwork.encodedBytes` separately under a unique key, not the generic `upload` identity; restore through `decodeArtwork` so limits are enforced again.
+
+## Stash and saved progress (stage 4)
+
+New puzzles begin in a separate scrollable stash. Play moves a whole piece/group into the playing area; select a board group to return it. Joined groups are never split. Sort by sampled average image brightness/color, or corners/edges followed by clockwise flat/tab/socket profile. Arrow buttons reorder manually. The edge filter hides stash interiors only; choose All pieces to recover the full list.
+
+Drag to join, or use Select next board group, directional controls and Join with Tab/Enter. Zoom enlarges the workspace; scroll horizontally/vertically to pan. Fit all restores 1× and includes every board piece. Reference and connection progress remain available during play. Reset keeps the image/spec; New game changes the seed. Image or size selection starts a fresh puzzle.
+
+Progress autosaves after 500 ms without changes and restores on reopening. Browser storage uses localStorage key `jigsaw.session.v1` (per origin); desktop uses `~/.jigsaw/session-v1.txt` with atomic replacement. The versioned envelope stores deterministic spec/seed, image identity, group membership/translations and stash order/sort. Uploaded PNG/JPEG bytes are included under a unique upload identity up to **2 MiB**, below the 12 MiB import limit. Larger uploads remain playable but cannot save that game. Storage/quota/corrupt-save failures show feedback and retain the last successfully written save. No server or cross-device synchronization. Clearing browser site data removes progress. Private browsing/storage policies can prevent saving. Closing immediately within the debounce window may lose the final action.
+
+Stage 4 verification: 15 desktop tests pass, including five new pure tests for serialization round trips, malformed/version/duplicate/missing/disconnected/non-finite data, upload limits, color/shape ordering, manual order and group transfer invariants. Production JS distribution and desktop compilation pass using SDKMAN current Java. T3 preview navigation loaded the title; two snapshot attempts failed with `Preview automation snapshot timed out after 15000ms.` Browser rendering, touch, keyboard/screen-reader behavior, reload and native picker/dialog interaction remain manually unverified. Compose canvas semantics depend on runtime support; keyboard group controls provide an alternative to dragging. Existing bundle/deprecation/native-access warnings remain.
