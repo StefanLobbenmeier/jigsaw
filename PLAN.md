@@ -14,7 +14,7 @@
 - Introduce piece poses, board coordinates, hit testing, drag handling, snap tolerances and connected groups. Snapping must validate actual neighbors and rigid group offsets.
 - Add deterministic, complementarity, boundary and group-merging tests. Replace grid preview with a playable procedural-artwork puzzle.
 
-## 3. Image library and local uploads
+## 3. Image library and local uploads — complete
 
 - Add curated images with explicit source, author, license and attribution metadata; only ship assets with verified redistribution rights.
 - Add platform-specific local file pickers behind shared interfaces, decode/crop images and render each piece using its shared outline.
@@ -50,8 +50,19 @@
 
 ## Next-agent interface
 
-Stage 3: retain `PuzzleSpec`, `PuzzleGeometry` and `PuzzleSession`; geometry uses cell units in global solved-artwork coordinates. `drawOriginalArtwork(width, height)` is the current renderer: replace/adapt it for decoded artwork while keeping clipping in `PuzzleBoard`. Add artwork identity and platform picker/decoding interfaces independently of geometry. Artwork is original procedural content with no external dependency.
+Stage 3 complete: `dev.jigsaw.artwork` owns library credits, common validation/crop/decode and expected `pickLocalImage()` with browser/desktop implementations. `PuzzleArtwork` holds a bitmap independently of `PuzzleSpec` / geometry / session. `ArtworkCredit.id` is stable for bundled choices, `file` resolves via Compose resources. `PuzzleBoard` draws the same centered crop through every existing piece outline. Original artwork is the fallback/default. UI supports source credits, import, collection switching, reference preview and new seeded games.
 
 Stage 4: session state is immutable and currently owned by `JigsawApp`; groups contain piece IDs and one translation (no rotations). Add versioned serialization and stash metadata around these models. `move`, `snap`, `raise` and `hitTest` are pure. Progress counts joined connections, not board placement; completed groups can still move. Zoom/pan, persistence, stash and keyboard controls remain stage 4 work. Hit testing approximates curves with 12 segments per cubic. Browser/touch interaction still needs final manual validation. No PWA code has been added in stage 2.
 
 Stage 5: implement the newly required installable/offline PWA before stage 6 validation/publication. Public repository and Pages authorization is already granted. Commit each stage with verification notes and update this plan.
+
+
+## Stage 3 verification and handoff
+
+- Bundled two reduced Wikimedia JPEGs (1280px wide) after browsing their original Commons file/licensing pages, the Public Domain Mark deed and PD-Art reuse guidance. `IMAGE_RIGHTS.md` records exact assets, creator/digitizer credits, source URLs, rights basis, revision IDs and SHA-256 hashes. Runtime image loading is local to the distribution.
+- Both pickers return `PickedImage?`; null is cancellation. Loading/decode errors retain the prior image/session. File reads are capped at 12 MiB; shared PNG/JPEG header validation caps dimensions at 8192 per edge and 16 MP before native decode. Desktop file reading and decoding run off the UI thread; web decoding can briefly block it.
+- `centerCrop` is shared by rendering and pixel sampling. `PuzzleArtwork.bitmap` exposes pixels; `averagePieceColor` samples 64 points per cell for sorting. Cache colors when implementing stash, rather than sampling during drawing. Procedural artwork has no bitmap and returns null colors: stage 4 can add a procedural sampler if needed.
+- Persistence must store bundled artwork ID, puzzle spec including seed, immutable group poses, and uploaded bytes under a generated unique identity. The current generic `upload` ID is only an in-memory UI marker, not a persistence key. Restore bytes via validation/decode and then restore geometry/session. Do not serialize Compose bitmap objects.
+- Passed SDKMAN-current Java command: `./gradlew :composeApp:desktopTest :composeApp:jsBrowserDistribution :composeApp:compileKotlinDesktop`. Ten desktop tests cover existing models plus bounds, crop, actual bundled resource decode and color sampling. Production distribution contains both images.
+- Manual picker/dialog and browser/touch validation remains. Native browser `cancel` event needs a modern browser; older browsers may leave import busy after cancellation. EXIF orientation is not normalized; PNG/JPEG only, first frame only, no automatic downsampling. Accepted large images may use ~64 MB plus renderer copies. Bounded `PuzzleArtwork.encodedBytes` are available in memory for the next persistence adapter; reload storage is not implemented yet.
+- No publication or PWA implementation in this stage. Preserve sequence: stash/persistence next, installable offline PWA after that, then final validation/publication. Bundled files alone do not make browser cold launch work offline.

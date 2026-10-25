@@ -13,6 +13,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(compose.runtime)
+            implementation(compose.components.resources)
             implementation(compose.foundation)
             implementation(compose.material3)
             implementation(compose.ui)
@@ -27,3 +28,5 @@ kotlin {
 compose.desktop {
     application { mainClass = "dev.jigsaw.MainKt" }
 }
+
+compose.resources { packageOfResClass = "dev.jigsaw.resources" }
