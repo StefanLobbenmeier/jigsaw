@@ -18,9 +18,15 @@ data class Edge(val curves: List<Curve>) {
     fun reversed() = Edge(curves.reversed().map { it.reversed() })
 }
 data class PieceGeometry(val id: Int, val edges: List<Edge>) {
-    val outline get() = edges.flatMap { it.curves }
+    val outline = edges.flatMap { it.curves }
+    private val polygon by lazy { outline.flatMap { curve -> (0 until 16).map { curve.at(it / 16f) } } }
+    private val controls = outline.flatMap { listOf(it.start, it.control1, it.control2, it.end) }
+    private val minX = controls.minOf { it.x }
+    private val maxX = controls.maxOf { it.x }
+    private val minY = controls.minOf { it.y }
+    private val maxY = controls.maxOf { it.y }
     fun contains(point: Point): Boolean {
-        val polygon = outline.flatMap { curve -> (0 until 12).map { curve.at(it / 12f) } }
+        if (point.x < minX || point.x > maxX || point.y < minY || point.y > maxY) return false
         var inside = false
         var previous = polygon.last()
         for (current in polygon) {
@@ -43,6 +49,26 @@ class PuzzleGeometry(val spec: PuzzleSpec) {
             fun p(x: Float, y: Float) = a + direction*x + normal*y
             fun line(a: Point, b: Point) = Curve(a, a+(b-a)*(1f/3), a+(b-a)*(2f/3), b)
             if (flat) return Edge(listOf(line(a,b)))
+            if (spec.cutVersion >= 2) {
+                // Every curved control point stays in [0.26, 0.74] along the seam
+                // and within 0.22 cells of it. Convex hull containment guarantees
+                // disjoint neighboring socket envelopes and a 0.56 × 0.56 core.
+                val center = .42f + random.nextFloat() * .16f
+                val neck = .035f + random.nextFloat() * .025f
+                val radius = .075f + random.nextFloat() * .025f
+                val lean = (random.nextFloat() - .5f) * .10f
+                val depth = .14f + random.nextFloat() * .08f
+                val sign = if (random.nextBoolean()) 1f else -1f
+                fun q(x: Float, y: Float) = p(center + x + lean * y / depth, sign * y)
+                return Edge(listOf(
+                    line(a, q(-neck-.025f, 0f)),
+                    Curve(q(-neck-.025f, 0f), q(-neck, 0f), q(-neck, depth * .1f), q(-neck, depth * .25f)),
+                    Curve(q(-neck, depth * .25f), q(-neck, depth * .45f), q(-radius, depth * .4f), q(-radius, depth * .7f)),
+                    Curve(q(-radius, depth * .7f), q(-radius, depth), q(radius, depth), q(radius, depth * .7f)),
+                    Curve(q(radius, depth * .7f), q(radius, depth * .4f), q(neck, depth * .45f), q(neck, depth * .25f)),
+                    Curve(q(neck, depth * .25f), q(neck, depth * .1f), q(neck, 0f), q(neck+.025f, 0f)),
+                    line(q(neck+.025f, 0f), b)))
+            }
             val center = .45f + random.nextFloat()*.1f
             val width = .09f + random.nextFloat()*.045f
             val depth = (.18f + random.nextFloat()*.07f) * if(random.nextBoolean()) 1 else -1

@@ -18,6 +18,33 @@ class PuzzleModelTest {
         }
         assertTrue(a.pieces.flatMap { it.edges }.distinct().size>spec.pieceCount)
     }
+    @Test fun socketsKeepProtectedCoreAndDisjointEnvelopes() {
+        repeat(100) { seed ->
+            val geometry = PuzzleGeometry(PuzzleSpec(8,6,seed))
+            geometry.pieces.forEach { piece ->
+                val x = piece.id % 8; val y = piece.id / 8
+                for (dx in listOf(.23f,.5f,.77f)) for (dy in listOf(.23f,.5f,.77f))
+                    assertTrue(piece.contains(Point(x+dx,y+dy)), "Core lost at seed $seed, piece ${piece.id}")
+                piece.edges.filter { it.curves.size > 1 }.forEach { edge ->
+                    val a = edge.curves.first().start
+                    val b = edge.curves.last().end
+                    val direction = b-a
+                    edge.curves.drop(1).dropLast(1).flatMap { listOf(it.start,it.control1,it.control2,it.end) }.forEach { p ->
+                        val delta = p-a
+                        val along = delta.x*direction.x+delta.y*direction.y
+                        val depth = kotlin.math.abs(direction.x*delta.y-direction.y*delta.x)
+                        assertTrue(depth <= .22001f)
+                        assertTrue(along in .25999f.. .74001f)
+                    }
+                }
+            }
+        }
+    }
+    @Test fun legacyGeometryRemainsAvailable() {
+        val old = PuzzleGeometry(PuzzleSpec(3,2,42,1))
+        assertEquals(4,old.pieces[0].edges[1].curves.size)
+        assertNotEquals(old.pieces,PuzzleGeometry(PuzzleSpec(3,2,42,2)).pieces)
+    }
     private fun session(vararg groups: PieceGroup) = PuzzleSession(PuzzleGeometry(PuzzleSpec(3,2)),groups.toList())
     @Test fun rigidMoveAndRecursiveMerge() {
         val a=PieceGroup(setOf(0,1),Point(2f,3f))

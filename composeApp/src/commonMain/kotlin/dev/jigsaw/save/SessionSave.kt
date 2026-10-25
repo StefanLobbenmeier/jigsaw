@@ -15,15 +15,15 @@ object SessionSave {
     fun encode(game: SavedGame): String {
         require((game.imageBytes?.size ?: 0) <= MAX_SAVED_IMAGE) { "Image exceeds the 2 MiB save limit. Choose a smaller image to save progress." }
         val w = game.workspace; val s = w.session.geometry.spec
-        return listOf("JIGSAW:1", "${s.columns},${s.rows},${s.seed}", Base64.encode(game.imageId.encodeToByteArray()), Base64.encode(game.imageName.encodeToByteArray()), game.imageBytes?.let { Base64.encode(it) } ?: "-", w.sort.name,
+        return listOf("JIGSAW:1", "${s.columns},${s.rows},${s.seed},${s.cutVersion}", Base64.encode(game.imageId.encodeToByteArray()), Base64.encode(game.imageName.encodeToByteArray()), game.imageBytes?.let { Base64.encode(it) } ?: "-", w.sort.name,
             w.stash.joinToString(","), w.session.groups.joinToString(";") { "${it.translation.x},${it.translation.y}:" + it.pieces.sorted().joinToString(",") }).joinToString("\n").also { require(it.length <= MAX_SAVE_CHARS) }
     }
     fun decode(text: String): SavedGame {
         require(text.length <= MAX_SAVE_CHARS) { "Saved game is too large." }
         val lines = text.split('\n'); require(lines.size == 8 && lines[0] == "JIGSAW:1") { "Unsupported or damaged save version." }
-        val specParts = lines[1].split(',').map { it.toInt() }; require(specParts.size == 3)
-        require(specParts[0] in 1..30 && specParts[1] in 1..30 && specParts[0]*specParts[1] in 2..300)
-        val spec = PuzzleSpec(specParts[0], specParts[1], specParts[2]); val geometry = PuzzleGeometry(spec)
+        val specParts = lines[1].split(',').map { it.toInt() }; require(specParts.size in 3..4)
+        require(specParts[0] in 1..1000 && specParts[1] in 1..1000 && specParts[0].toLong()*specParts[1] in 2L..1000L)
+        val spec = PuzzleSpec(specParts[0], specParts[1], specParts[2], specParts.getOrElse(3) { 1 }); val geometry = PuzzleGeometry(spec)
         val groups = lines[7].split(';').map { entry ->
             val parts = entry.split(':'); require(parts.size == 2)
             val xy = parts[0].split(',').map { it.toFloat() }; require(xy.size == 2 && xy.all { it.isFinite() && kotlin.math.abs(it) <= 1000 })

@@ -43,6 +43,18 @@ class WorkspaceTest {
         assertEquals(4,shapes.last())
         assertEquals(w.session.groups,w.sorted(StashSort.SHAPE,colors).session.groups)
     }
+    @Test fun thousandPiecesAndLegacySaveRoundTrip() {
+        val game = SavedGame(Workspace.fresh(PuzzleSpec(40,25)), "original", "Large puzzle")
+        val restored = SessionSave.decode(SessionSave.encode(game)).workspace
+        assertEquals(1000,restored.session.geometry.spec.pieceCount)
+        assertEquals(game.workspace.session.groups,restored.session.groups)
+        assertEquals(game.workspace.stash,restored.stash)
+        assertEquals(game.workspace.session.geometry.pieces,restored.session.geometry.pieces)
+        val legacy = SessionSave.encode(SavedGame(Workspace.fresh(PuzzleSpec(6,4,42,1)), "original", "Legacy"))
+            .replace("6,4,42,1", "6,4,42")
+        assertEquals(1,SessionSave.decode(legacy).workspace.session.geometry.spec.cutVersion)
+        assertFails { SessionSave.decode(legacy.replace("6,4,42", "41,25,42")) }
+    }
     @Test fun uploadedBytesAndLimits() {
         val bytes=byteArrayOf(1,2,3)
         val game=SavedGame(Workspace.fresh(PuzzleSpec(2,2)),"upload-unique","a\nb",bytes)
