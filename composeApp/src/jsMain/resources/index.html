@@ -14,17 +14,18 @@
     body { display:flex; flex-direction:column; }
     #app { flex:1; min-height:0; position:relative; touch-action:none; }
     #pwa { padding:6px 12px; font:13px system-ui; color:#304c48; border-top:1px solid #d8d5ce; }
-    #pwa summary, #install { cursor:pointer; }
+    #pwa summary, #install, #update { cursor:pointer; }
     #pwa p { margin:6px 0; max-width:70em; }
-    #install { font:inherit; }
+    #install, #update { font:inherit; }
   </style>
 </head>
 <body>
   <div id="app"></div>
   <aside id="pwa" aria-label="Install and offline help">
+    <button id="update" hidden>Update now</button>
     <details><summary>Install &amp; offline <span id="offline-status" role="status">— preparing offline download…</span></summary>
       <p><button id="install" hidden>Install Jigsaw</button> In Chrome or Edge, use the address-bar install icon or browser menu → Install app. On iPhone/iPad, open in Safari → Share → Add to Home Screen. Other browsers may offer Add to Home Screen or a shortcut; you can always play in this tab with WebAssembly enabled.</p>
-      <p>Wait for “Ready offline” before disconnecting. All bundled puzzles are downloaded. Progress and saved uploads stay on this device; clearing site data removes them. Source credit links need internet. Updates download online and take effect after closing all Jigsaw windows and reopening.</p>
+      <p>Wait for “Ready offline” before disconnecting. All bundled puzzles are downloaded. Progress and saved uploads stay on this device; clearing site data removes them. Source credit links need internet. Updates are checked when you return to the app. When an update is ready, finish your move and choose “Update now”; open Jigsaw windows will reload. You can also close all Jigsaw windows and reopen to apply it.</p>
     </details>
   </aside>
   <script src="pwa.js"></script>

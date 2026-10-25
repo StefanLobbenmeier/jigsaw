@@ -23,6 +23,7 @@ jobs:
           node-version: '22'
       - run: ./gradlew :composeApp:desktopTest :composeApp:jsBrowserDistribution :composeApp:compileKotlinDesktop
       - run: node scripts/test-pwa.cjs
+      - run: node scripts/test-pwa-updates.cjs
       - uses: actions/upload-pages-artifact@v3
         with:
           path: composeApp/build/dist/js/productionExecutable
