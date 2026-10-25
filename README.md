@@ -38,7 +38,7 @@ Kotlin 2.4.21, Compose Multiplatform 1.12.2, Gradle 9.8.2. Generic build convent
 
 Application code and original procedural artwork use the [MIT license](LICENSE). Bundled public-domain reproductions have separate records in [IMAGE_RIGHTS.md](IMAGE_RIGHTS.md); the Noto font retains its OFL license.
 
-Pushes to `main` run desktop model tests, build the browser distribution, compile desktop, check the PWA cache, then deploy through GitHub Pages Actions. The complete output is published under `/jigsaw/`. Deployment validation is recorded below.
+Pushes to `main` run desktop model tests, build the browser distribution, compile desktop, check the PWA cache, then deploy through GitHub Pages Actions. The complete output is published under `/jigsaw/`. Deployment validation is recorded below. The initial release workflow [passed](https://github.com/StefanLobbenmeier/jigsaw/actions/runs/40195233170), including Pages deployment.
 
 ## Scaffold validation
 
@@ -95,3 +95,7 @@ Final review added MIT licensing, checked tracked files/history for common crede
 The SDKMAN-current Java build passed after this fix: all 15 desktop tests, production JS distribution and desktop compilation. `scripts/test-pwa.cjs` passed for all 17 cached assets. Chromium browser checks under `/jigsaw/` validated the final correct-neighbor snap from a prepared near-complete 24-piece save, dragging the resulting rigid group, saved-state reload, native JPEG file selection and uploaded-image restore, stash color/shape sorting, manual reorder and transfer to play. A 390×844 mobile viewport with Chromium touch events moved a piece and autosaved its changed position. This is emulation, not a physical touchscreen test. Earlier-stage offline/installability checks are described above.
 
 Remaining limits: no actual OS installation/standalone-window test, Safari/iOS or physical-device test, screen-reader audit, interactive desktop test, or exhaustive full-puzzle playthrough from the initial stash. The final completion check used a prepared save; pure model tests cover recursive joins and incorrect-neighbor rejection. Browser storage quota/eviction and multi-version update activation have not been tested end to end. Canvas controls were exercised by coordinates; assistive-technology access needs further testing. Existing runtime/bundle warnings remain.
+
+Live HTTPS verification passed at https://stefanlobbenmeier.github.io/jigsaw/: HTTP 200, all 17 worker assets returned successfully under `/jigsaw/`, manifest start/scope are relative, and the active worker scope matches the Pages directory. Chromium reported no installability errors. With the browser context offline and the original page closed, a fresh page launched, both bundled images decoded, a Great Wave piece transferred from stash to play and autosaved, and the cached symbol font returned 57,708 bytes. No page errors were observed. The same final-snap/group-drag/reload and JPEG-import/restore checks also passed against the deployed site. This verifies browser offline use, not an installed OS window.
+
+GitHub currently reports Node 20 deprecation notices for several workflow actions (the runner executes them with Node 24); build and deployment succeed. Update action versions as their maintained releases permit.

@@ -34,7 +34,7 @@
 - Validate installability and installed launch, then offline cold launch and bundled puzzle play under the Pages subpath. Document browser differences and upload/persistence limitations.
 - Implement this after images and stash/persistence, before final validation/publication. PWA implementation is complete; final review/publication remains stage 6.
 
-## 6. Validate and publish
+## 6. Validate and publish — release complete; platform checks remain
 
 - Run geometry/session tests, production browser build, desktop compilation and browser interaction checks, including touch, reload/resume, uploads and Pages subpath asset loading.
 - Check image rights, choose project license, review accessibility/performance, and document browser/runtime limitations.
@@ -91,4 +91,7 @@ Stage 5: implement the newly required installable/offline PWA before stage 6 val
 - Fixed canvas overflow from stash thumbnails by clipping each puzzle canvas to its layout bounds.
 - After the fix, 15 desktop tests, production distribution and desktop compilation pass; the PWA checker passes with 17 assets. CI now runs those tests/checks before deployment.
 - Chromium interaction checks: final correct-neighbor snap from a prepared 23-piece group plus last piece, resulting 24-piece rigid-group drag, exact saved-state restore, native JPEG chooser import and uploaded-image restore, color/shape stash sorting, manual reorder and Play transfer. Mobile 390×844 Chromium touch events moved a piece and autosaved it. Physical touch devices, Safari/iOS, actual OS installation, screen readers, interactive desktop and exhaustive completion from the initial stash remain unvalidated; these are follow-up checks, not claimed complete.
-- Public repository created at https://github.com/StefanLobbenmeier/jigsaw with Pages Actions source enabled. HTTPS deployment verification is pending the first workflow run.
+- Public repository created at https://github.com/StefanLobbenmeier/jigsaw with Pages Actions source enabled. Workflow https://github.com/StefanLobbenmeier/jigsaw/actions/runs/40195233170 passed build, tests, PWA checks and Pages deployment.
+
+- Live HTTPS verification: HTTP 200 and all 17 cached asset URLs succeeded under the actual `/jigsaw/` path; manifest and worker scope verified. Chromium installability errors were empty. A fresh page cold-launched offline, decoded both bundled images, transferred a Great Wave piece into play, autosaved and loaded the 57,708-byte cached symbol font without page errors. Final snap/group drag/reload and JPEG import/restore were also exercised on the deployed site.
+- Release/publication scope is complete. The platform/accessibility/installation checks listed above remain explicitly unvalidated follow-up work; stage 5's completion refers to PWA implementation and tested browser offline behavior, not actual OS installation. CI emits action-runtime deprecation notices but completes successfully.
