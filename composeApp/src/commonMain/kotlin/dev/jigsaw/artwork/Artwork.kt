@@ -79,12 +79,14 @@ class PuzzleArtwork(
     /** Keep bounded upload bytes available to a later persistence adapter; never serialize bitmap. */
     val encodedBytes: ByteArray? = null
 ) {
+    private val pixels by lazy { bitmap?.toPixelMap() }
+
     /** Crop-aligned pixel access for stash sorting; sample outside the hot draw loop. */
     fun averagePieceColor(column: Int, row: Int, columns: Int, rows: Int): Color? {
         val image=bitmap ?: return null
         require(column in 0 until columns && row in 0 until rows)
         val crop=centerCrop(image.width,image.height,columns,rows)
-        val pixels=image.toPixelMap()
+        val pixels=checkNotNull(pixels)
         var r=0f; var g=0f; var b=0f
         for (y in 0 until 8) for (x in 0 until 8) {
             val px=crop.offset.x+((column+(x+.5f)/8)*crop.size.width/columns).toInt()

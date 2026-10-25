@@ -2,15 +2,12 @@ package dev.jigsaw.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -21,16 +18,9 @@ import androidx.compose.ui.unit.sp
 import dev.jigsaw.model.*
 import dev.jigsaw.artwork.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.CancellationException
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.drawscope.*
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.unit.IntSize
 
 private val Ink = Color(0xFF243E36)
 private val Paper = Color(0xFFF6F3EB)
@@ -47,8 +37,7 @@ fun JigsawApp() {
     var message by remember { mutableStateOf("Opening saved game…") }
     var reference by remember { mutableStateOf(false) }
     var edges by remember { mutableStateOf(false) }
-    var active by remember { mutableStateOf<Int?>(null) }
-    var zoom by remember { mutableStateOf(1f) }
+    var fitRequest by remember { mutableStateOf(0) }
     val scope = rememberCoroutineScope()
     val uriHandler = LocalUriHandler.current
     LaunchedEffect(Unit) {
@@ -84,7 +73,7 @@ fun JigsawApp() {
                     val picked = pickLocalImage() ?: return@launch
                     decodeArtwork(ArtworkCredit("upload-${kotlin.random.Random.nextLong()}", picked.name, "Your local image", "Private local file"), picked.bytes)
                 }
-                artwork = next; workspace = Workspace.fresh(selected); active = null
+                artwork = next; workspace = Workspace.fresh(selected.copy(cutVersion = 2))
             } catch (failure: Exception) { message = failure.message ?: "Could not open image." }
             finally { loading = false }
         }
@@ -102,8 +91,8 @@ fun JigsawApp() {
                 artworkLibrary.forEach { credit -> FilterChip(selected = artwork.credit.id == credit.id, enabled = !loading, onClick = { changeArtwork(credit) }, label = { Text(credit.title) }) }
                 OutlinedButton(onClick = { changeArtwork() }, enabled = !loading) { Text("Open PNG / JPEG…") }
                 Text("Images up to 12 MiB / 16 MP. Uploads up to 2 MiB can be saved. Files stay on your device.", fontSize = 12.sp)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    starterPuzzles.forEach { spec -> FilterChip(selected = selected.columns == spec.columns, enabled = !loading, onClick = { workspace = Workspace.fresh(spec); active = null }, label = { Text("${spec.pieceCount}") }) }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    starterPuzzles.forEach { spec -> FilterChip(selected = selected.columns == spec.columns && selected.rows == spec.rows, enabled = !loading, onClick = { workspace = Workspace.fresh(spec) }, label = { Text("${spec.pieceCount}") }) }
                 }
                 Text(artwork.credit.title + " · " + artwork.credit.author + "\n" + artwork.credit.license, fontSize = 12.sp)
                 artwork.credit.source?.let { source -> TextButton(onClick = { uriHandler.openUri(source) }) { Text("Image source & rights ↗") } }
@@ -113,61 +102,20 @@ fun JigsawApp() {
                 Text("${selected.pieceCount-session.groups.size} / ${selected.pieceCount-1} joins · ${workspace.stash.size} stashed groups", fontSize = 13.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = { reference = !reference }) { Text("Reference") }
-                    TextButton(onClick = { zoom = 1f }) { Text("Fit all") }
+                    TextButton(onClick = { fitRequest++ }) { Text("Fit all") }
                     TextButton(onClick = { edges = !edges }) { Text(if (edges) "All pieces" else "Edges first") }
                 }
                 if (reference) ArtworkPreview(artwork, selected, Modifier.fillMaxWidth().height(180.dp))
-                Text("Workspace zoom", fontSize = 12.sp)
-                Slider(value = zoom, onValueChange = { zoom = it }, valueRange = 1f..2.5f)
-                BoxWithConstraints(Modifier.fillMaxWidth().height(420.dp).background(Color(0xFFE4E9DF), RoundedCornerShape(20.dp))) {
-                    val boardWidth = maxWidth
-                    Box(Modifier.fillMaxSize().horizontalScroll(rememberScrollState()).verticalScroll(rememberScrollState())) {
-                    PuzzleBoard(session.copy(groups = session.groups.filter { g -> workspace.stash.none { it in g.pieces } }), artwork, { updated ->
-                        workspace = workspace.copy(session = session.copy(groups = session.groups.filter { g -> workspace.stash.any { it in g.pieces } } + updated.groups))
-                    }, Modifier.width(boardWidth * zoom).height(410.dp * zoom), { active = it })
-                    }
-                }
-                val boardGroups = session.groups.filter { g -> workspace.stash.none { it in g.pieces } }
-                if (boardGroups.isNotEmpty()) {
-                    TextButton(onClick = {
-                        val index = boardGroups.indexOfFirst { active in it.pieces }
-                        active = boardGroups[(index+1) % boardGroups.size].pieces.min()
-                    }) { Text("Select next board group (${active?.plus(1) ?: "none"})") }
-                }
-                active?.let { id ->
-                    if (session.groups.any { id in it.pieces } && workspace.stash.none { key -> session.groups.first { id in it.pieces }.pieces.contains(key) }) {
-                        Row {
-                            listOf("←" to Point(-.2f,0f), "↑" to Point(0f,-.2f), "↓" to Point(0f,.2f), "→" to Point(.2f,0f)).forEach { (label,delta) ->
-                                TextButton(onClick = { workspace = workspace.copy(session = session.move(id,delta)) }) { Text(label) }
-                            }
-                            TextButton(onClick = {
-                                val visible = session.copy(groups = boardGroups).snap(id)
-                                workspace = workspace.copy(session = session.copy(groups = session.groups.filter { g -> workspace.stash.any { it in g.pieces } } + visible.groups))
-                            }) { Text("Join") }
-                        }
-                        OutlinedButton(onClick = { workspace = workspace.transfer(id, true); active = null }) { Text("Return selected group to stash") }
-                    }
-                }
-                Text("Stash", fontWeight = FontWeight.Bold, color = Ink)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     StashSort.entries.forEach { mode -> FilterChip(selected = workspace.sort == mode, onClick = { workspace = workspace.sorted(mode, colors) }, label = { Text(mode.name.lowercase().replaceFirstChar { it.uppercase() }) }) }
                 }
-                Column(Modifier.fillMaxWidth().heightIn(max = 300.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    workspace.stash.filter { key -> !edges || session.groups.first { key in it.pieces }.pieces.any { shapeKey(session.geometry,it).first() < '4' } }.forEach { key ->
-                        val group = session.groups.first { key in it.pieces }
-                        Row(Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(10.dp)), verticalAlignment = Alignment.CenterVertically) {
-                            PuzzleBoard(session.copy(groups = listOf(group)), artwork, {}, Modifier.size(64.dp), {}, true)
-                            Text("${key+1} · ${group.pieces.size} pc", modifier = Modifier.weight(1f), fontSize = 12.sp)
-                            TextButton(onClick = { workspace = workspace.reorder(key,-1) }) { Text("↑") }
-                            TextButton(onClick = { workspace = workspace.reorder(key,1) }) { Text("↓") }
-                            TextButton(onClick = { workspace = workspace.transfer(key,false); active = key }) { Text("Play") }
-                        }
-                    }
+                BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    PlaySurface(workspace, artwork, edges, fitRequest, { workspace = it }, Modifier.fillMaxWidth().height(if (maxWidth < 600.dp) 420.dp else 520.dp))
                 }
-                Text("Play brings a whole group to the center. Drag matching pieces close to join. Tap or drag a board piece to select it, then return it to the stash. Use stash arrows to order manually. Fit all recovers every board piece. Tab navigates controls; Enter activates. Scroll the enlarged workspace to pan.", fontSize = 12.sp, color = Ink)
+                Text("Drag pieces between the board and tray. Swipe sideways in the tray to browse. Pinch to zoom; drag empty board space to pan. Fit all brings every board piece into view. Keyboard: focus the board, N selects the next group, arrows move it, Enter transfers, J joins.", fontSize = 12.sp, color = Ink)
                 Row {
-                    TextButton(onClick = { workspace = Workspace.fresh(selected); active = null }) { Text("Reset") }
-                    TextButton(onClick = { workspace = Workspace.fresh(selected.copy(seed = selected.seed+1)); active = null }) { Text("New game") }
+                    TextButton(onClick = { workspace = Workspace.fresh(selected) }) { Text("Reset") }
+                    TextButton(onClick = { workspace = Workspace.fresh(selected.copy(seed = selected.seed+1, cutVersion = 2)) }) { Text("New game") }
                 }
             }
         }
@@ -193,7 +141,7 @@ fun DrawScope.drawOriginalArtwork(width: Float, height: Float) {
 }
 
 /** The same centered source rectangle drives preview, pieces and color sampling. */
-private fun DrawScope.drawArtwork(artwork: PuzzleArtwork, columns: Int, rows: Int, width: Float, height: Float) {
+internal fun DrawScope.drawArtwork(artwork: PuzzleArtwork, columns: Int, rows: Int, width: Float, height: Float) {
     val image = artwork.bitmap
     if (image == null) drawOriginalArtwork(width, height)
     else {
@@ -216,62 +164,9 @@ private fun ArtworkPreview(artwork: PuzzleArtwork, spec: PuzzleSpec, modifier: M
     }
 }
 
-private fun PieceGeometry.path(): Path = Path().apply {
+internal fun PieceGeometry.path(): Path = Path().apply {
     val curves = outline
     moveTo(curves.first().start.x, curves.first().start.y)
     curves.forEach { cubicTo(it.control1.x,it.control1.y,it.control2.x,it.control2.y,it.end.x,it.end.y) }
     close()
-}
-
-@Composable
-private fun PuzzleBoard(session: PuzzleSession, artwork: PuzzleArtwork, update: (PuzzleSession) -> Unit, modifier: Modifier, select: (Int) -> Unit = {}, thumbnail: Boolean = false) {
-    val current by rememberUpdatedState(session)
-    val onUpdate by rememberUpdatedState(update)
-    var dimensions by remember { mutableStateOf(IntSize.Zero) }
-    val spec = session.geometry.spec
-    var dragging by remember { mutableStateOf(false) }
-    val boundsSession = remember(dragging, if (dragging) null else session) { session }
-    val minX = minOf(if (thumbnail) Float.MAX_VALUE else 0f, boundsSession.groups.minOfOrNull { g -> g.pieces.minOf { it % spec.columns + g.translation.x } } ?: 0f) - .5f
-    val minY = minOf(if (thumbnail) Float.MAX_VALUE else 0f, boundsSession.groups.minOfOrNull { g -> g.pieces.minOf { it / spec.columns + g.translation.y } } ?: 0f) - .5f
-    val maxX = maxOf(if (thumbnail) -Float.MAX_VALUE else spec.columns.toFloat(), boundsSession.groups.maxOfOrNull { g -> g.pieces.maxOf { it % spec.columns + g.translation.x + 1 } } ?: 0f) + .5f
-    val maxY = maxOf(if (thumbnail) -Float.MAX_VALUE else spec.rows.toFloat(), boundsSession.groups.maxOfOrNull { g -> g.pieces.maxOf { it / spec.columns + g.translation.y + 1 } } ?: 0f) + .5f
-    fun scale() = minOf(dimensions.width / (maxX-minX), dimensions.height / (maxY-minY))
-    val origin by rememberUpdatedState(Point(minX,minY))
-    val cellSize by rememberUpdatedState(scale())
-    Canvas(modifier.clipToBounds().onSizeChanged { dimensions = it }.pointerInput(session) {
-        detectTapGestures { pos -> if (scale() > 0) current.hitTest(Point(pos.x/scale()+minX,pos.y/scale()+minY))?.let(select) }
-    }.pointerInput(spec) {
-        var dragged: Int? = null
-        detectDragGestures(
-            onDragStart = { position ->
-                dragging = true
-                val cell = cellSize
-                if (cell > 0) {
-                    dragged = current.hitTest(Point(position.x/cell+origin.x,position.y/cell+origin.y))
-                    dragged?.let { select(it); onUpdate(current.raise(it)) }
-                }
-            },
-            onDrag = { change, amount -> dragged?.let {
-                change.consume()
-                onUpdate(current.move(it,Point(amount.x/cellSize,amount.y/cellSize)))
-            } },
-            onDragEnd = { dragged?.let { onUpdate(current.snap(it)) }; dragged=null; dragging=false },
-            onDragCancel = { dragged=null; dragging=false }
-        )
-    }) {
-        val cell = scale()
-        if (cell <= 0) return@Canvas
-        withTransform({ translate(-cell*minX,-cell*minY); scale(cell,cell,Offset.Zero) }) {
-            drawRect(Ink.copy(alpha=.08f), size=androidx.compose.ui.geometry.Size(spec.columns.toFloat(),spec.rows.toFloat()))
-            current.groups.forEach { group ->
-                translate(group.translation.x,group.translation.y) {
-                    group.pieces.forEach { id ->
-                        val path = current.geometry.pieces[id].path()
-                        clipPath(path) { drawArtwork(artwork, spec.columns, spec.rows, spec.columns.toFloat(),spec.rows.toFloat()) }
-                        drawPath(path,Ink.copy(alpha=.65f),style=Stroke(1f/cell))
-                    }
-                }
-            }
-        }
-    }
 }
