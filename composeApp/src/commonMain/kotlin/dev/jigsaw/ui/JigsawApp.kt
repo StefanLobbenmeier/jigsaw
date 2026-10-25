@@ -16,7 +16,13 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.jigsaw.model.starterPuzzles
+import dev.jigsaw.model.*
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.drawscope.*
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 
 private val Ink = Color(0xFF243E36)
 private val Paper = Color(0xFFF6F3EB)
@@ -25,6 +31,7 @@ private val Paper = Color(0xFFF6F3EB)
 fun JigsawApp() {
     var selected by remember { mutableStateOf(starterPuzzles.first()) }
     var preview by remember { mutableStateOf(false) }
+    var session by remember(selected) { mutableStateOf(PuzzleSession.scattered(selected)) }
     MaterialTheme(colorScheme = lightColorScheme(primary = Ink, background = Paper, surface = Paper)) {
         Box(Modifier.fillMaxSize().background(Paper), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 920.dp).fillMaxWidth().verticalScroll(rememberScrollState()).padding(28.dp), verticalArrangement = Arrangement.spacedBy(22.dp)) {
@@ -36,7 +43,8 @@ fun JigsawApp() {
                 Text(if (preview) "Your moment of calm." else "A little piece of calm.", fontSize = 40.sp, lineHeight = 46.sp, fontWeight = FontWeight.SemiBold, color = Ink)
                 Text("Slow down. Find a corner. Let the bigger picture come together.", fontSize = 17.sp, color = Ink.copy(alpha = .7f))
                 Surface(shape = RoundedCornerShape(24.dp), color = Color(0xFFE4E9DF)) {
-                    Landscape(Modifier.fillMaxWidth().height(280.dp), if (preview) selected.columns else 0, if (preview) selected.rows else 0)
+                    if (preview) PuzzleBoard(session, { session = it }, Modifier.fillMaxWidth().height(480.dp))
+                    else Landscape(Modifier.fillMaxWidth().height(280.dp))
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
@@ -52,37 +60,88 @@ fun JigsawApp() {
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Button(onClick = { preview = !preview }, contentPadding = PaddingValues(horizontal = 26.dp, vertical = 14.dp)) {
-                        Text(if (preview) "Back to collection" else "Preview puzzle")
+                        Text(if (preview) "Back to collection" else "Start puzzle")
                     }
                     Text(if (preview) "${selected.pieceCount} pieces · seed ${selected.seed}" else "A small beginning", color = Ink.copy(alpha = .65f), fontSize = 13.sp)
                 }
-                Text("${if (preview) "Grid preview only. " else ""}Interlocking pieces and play are coming next.", fontSize = 12.sp, color = Ink.copy(alpha = .6f))
+                if (preview) {
+                    LinearProgressIndicator(progress = { session.progress }, modifier = Modifier.fillMaxWidth())
+                    Text(if (session.complete) "Complete. Take a moment to enjoy it." else "${selected.pieceCount - session.groups.size} of ${selected.pieceCount - 1} connections · Drag matching pieces close to join them.", color = Ink)
+                    TextButton(onClick = { session = PuzzleSession.scattered(selected) }) { Text("Scatter again") }
+                }
             }
         }
     }
 }
 
-/** Original procedural artwork; no external image rights or network dependency. */
+/** Artwork interface for the next stage: replace this DrawScope renderer with a decoded image. */
+fun DrawScope.drawOriginalArtwork(width: Float, height: Float) {
+    val w = width
+    val h = height
+    drawRect(Color(0xFFDCE7DE), size = androidx.compose.ui.geometry.Size(w,h))
+    drawCircle(Color(0xFFF5D99B), h * .14f, Offset(w * .73f, h * .25f))
+    fun hill(color: Color, start: Float, control: Float, end: Float) {
+        drawPath(Path().apply {
+            moveTo(0f, h * start)
+            cubicTo(w * .3f, h * control, w * .6f, h * end, w, h * (start - .1f))
+            lineTo(w, h); lineTo(0f, h); close()
+        }, color)
+    }
+    hill(Color(0xFF9CB5A1), .64f, .03f, .85f)
+    hill(Color(0xFF668E79), .85f, .37f, .45f)
+    hill(Color(0xFF365F50), 1.08f, .62f, .7f)
+}
+
 @Composable
-private fun Landscape(modifier: Modifier, columns: Int, rows: Int) {
-    Canvas(modifier) {
-        val w = size.width
-        val h = size.height
-        drawRect(Color(0xFFDCE7DE))
-        drawCircle(Color(0xFFF5D99B), h * .14f, Offset(w * .73f, h * .25f))
-        fun hill(color: Color, start: Float, control: Float, end: Float) {
-            drawPath(Path().apply {
-                moveTo(0f, h * start)
-                cubicTo(w * .3f, h * control, w * .6f, h * end, w, h * (start - .1f))
-                lineTo(w, h); lineTo(0f, h); close()
-            }, color)
-        }
-        hill(Color(0xFF9CB5A1), .64f, .03f, .85f)
-        hill(Color(0xFF668E79), .85f, .37f, .45f)
-        hill(Color(0xFF365F50), 1.08f, .62f, .7f)
-        if (columns > 0 && rows > 0) {
-            for (x in 1 until columns) drawLine(Paper.copy(alpha = .65f), Offset(w * x / columns, 0f), Offset(w * x / columns, h), 1.5f)
-            for (y in 1 until rows) drawLine(Paper.copy(alpha = .65f), Offset(0f, h * y / rows), Offset(w, h * y / rows), 1.5f)
+private fun Landscape(modifier: Modifier) {
+    Canvas(modifier) { drawOriginalArtwork(size.width, size.height) }
+}
+
+private fun PieceGeometry.path(): Path = Path().apply {
+    val curves = outline
+    moveTo(curves.first().start.x, curves.first().start.y)
+    curves.forEach { cubicTo(it.control1.x,it.control1.y,it.control2.x,it.control2.y,it.end.x,it.end.y) }
+    close()
+}
+
+@Composable
+private fun PuzzleBoard(session: PuzzleSession, update: (PuzzleSession) -> Unit, modifier: Modifier) {
+    val current by rememberUpdatedState(session)
+    val onUpdate by rememberUpdatedState(update)
+    var dimensions by remember { mutableStateOf(IntSize.Zero) }
+    val spec = session.geometry.spec
+    fun scale() = minOf(dimensions.width / (spec.columns+4f), dimensions.height / (spec.rows+4f))
+    Canvas(modifier.onSizeChanged { dimensions = it }.pointerInput(spec) {
+        var dragged: Int? = null
+        detectDragGestures(
+            onDragStart = { position ->
+                val cell = scale()
+                if (cell > 0) {
+                    dragged = current.hitTest(Point(position.x/cell-2,position.y/cell-2))
+                    dragged?.let { onUpdate(current.raise(it)) }
+                }
+            },
+            onDrag = { change, amount -> dragged?.let {
+                change.consume()
+                onUpdate(current.move(it,Point(amount.x/scale(),amount.y/scale())))
+            } },
+            onDragEnd = { dragged?.let { onUpdate(current.snap(it)) }; dragged=null },
+            onDragCancel = { dragged=null }
+        )
+    }) {
+        val cell = scale()
+        if (cell <= 0) return@Canvas
+        withTransform({ translate(cell*2,cell*2); scale(cell,cell,Offset.Zero) }) {
+            drawRect(Ink.copy(alpha=.08f), size=androidx.compose.ui.geometry.Size(spec.columns.toFloat(),spec.rows.toFloat()))
+            current.groups.forEach { group ->
+                translate(group.translation.x,group.translation.y) {
+                    group.pieces.forEach { id ->
+                        val path = current.geometry.pieces[id].path()
+                        clipPath(path) { drawOriginalArtwork(spec.columns.toFloat(),spec.rows.toFloat()) }
+                        drawPath(path,Ink.copy(alpha=.65f),style=Stroke(1f/cell))
+                    }
+                }
+            }
         }
     }
 }

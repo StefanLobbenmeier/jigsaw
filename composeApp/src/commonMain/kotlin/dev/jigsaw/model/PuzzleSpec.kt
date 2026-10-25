@@ -1,6 +1,6 @@
 package dev.jigsaw.model
 
-/** Stable input for the future deterministic geometry engine. No platform types belong here. */
+/** Stable input for the deterministic geometry engine. No platform types belong here. */
 data class PuzzleSpec(val columns: Int, val rows: Int, val seed: Int = 42) {
     init { require(columns > 0 && rows > 0) }
     val pieceCount: Int get() = columns * rows
